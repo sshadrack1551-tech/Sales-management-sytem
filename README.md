@@ -1,1 +1,0 @@
-Business Solutions System shop management system. Supabase URL and publishable key are configured in index.html. Run supabase_schema.sql in the Supabase SQL Editor, then deploy index.html.
