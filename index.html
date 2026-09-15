@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Business Solutions System</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{--bg:#f5f7fb;--card:#fff;--text:#182033;--muted:#6b7280;--primary:#6d28d9;--secondary:#06b6d4;--danger:#ef4444;--border:#e5e7eb}
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,Arial;background:var(--bg);color:var(--text)}
+    button,input,select{font:inherit} button{cursor:pointer;border:0}
+    .auth{min-height:100vh;display:grid;place-items:center;padding:20px;background:linear-gradient(135deg,#6d28d9,#06b6d4)}
+    .auth-card{width:min(440px,100%);background:#fff;border-radius:24px;padding:30px;box-shadow:0 20px 60px #0003}
+    .logo{font-size:24px;font-weight:800}.tag{color:var(--muted);margin:6px 0 24px}
+    .field{margin:14px 0}.field label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}
+    .field input,.field select{width:100%;padding:12px;border:1px solid var(--border);border-radius:12px;outline:none}
+    .primary{background:var(--primary);color:#fff;padding:12px 16px;border-radius:12px;font-weight:700;width:100%}
+    .ghost{background:#f3f4f6;padding:10px 14px;border-radius:10px}
+    .app{display:none;min-height:100vh}.sidebar{position:fixed;left:0;top:0;bottom:0;width:245px;background:#17112d;color:#fff;padding:22px 14px}
+    .brand{padding:10px 12px 22px}.brand small{display:block;color:#bdb5d7;margin-top:4px}.nav button{display:block;width:100%;text-align:left;background:transparent;color:#d8d1e8;padding:12px;border-radius:10px;margin:4px 0}
+    .nav button.active,.nav button:hover{background:#6d28d9;color:#fff}.main{margin-left:245px;padding:24px}.top{display:flex;justify-content:space-between;gap:15px;align-items:center;margin-bottom:22px}.top h1{margin:0}.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px}.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:18px}.card .value{font-size:27px;font-weight:800;margin-top:8px}.muted{color:var(--muted);font-size:13px}
+    .panel{background:#fff;border:1px solid var(--border);border-radius:18px;padding:18px;margin-top:18px}.toolbar{display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap}.toolbar input{max-width:300px;padding:11px;border:1px solid var(--border);border-radius:10px}
+    table{width:100%;border-collapse:collapse;margin-top:14px}th,td{padding:12px;border-bottom:1px solid var(--border);text-align:left;font-size:14px}th{color:var(--muted)}
+    .badge{padding:5px 9px;border-radius:99px;font-size:12px;background:#ede9fe;color:#5b21b6}.danger{background:#fee2e2;color:#991b1b}.success{background:#dcfce7;color:#166534}
+    .modal{display:none;position:fixed;inset:0;background:#0007;place-items:center;padding:20px;z-index:5}.modal-box{background:#fff;width:min(520px,100%);border-radius:20px;padding:22px}.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}.modal-actions button{width:auto}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.notice{padding:12px;border-radius:12px;background:#eff6ff;color:#1d4ed8;margin-bottom:12px;font-size:13px}
+    @media(max-width:900px){.sidebar{position:static;width:100%;height:auto}.main{margin-left:0}.nav{display:flex;overflow:auto}.nav button{min-width:max-content}.cards{grid-template-columns:repeat(2,1fr)}} @media(max-width:600px){.cards,.grid2{grid-template-columns:1fr}.main{padding:14px}.top{align-items:flex-start;flex-direction:column}}
+  </style>
+</head>
+<body>
+<div id="auth" class="auth">
+  <div class="auth-card">
+    <div class="logo">Business Solutions System</div>
+    <div class="tag">General Shop Management System</div>
+    <div id="authNotice" class="notice">Sign in to your shop account.</div>
+    <div class="field"><label>Email</label><input id="email" type="email" placeholder="owner@example.com"></div>
+    <div class="field"><label>Password</label><input id="password" type="password" placeholder="••••••••"></div>
+    <button id="loginBtn" class="primary">Sign in</button>
+    <button id="signupBtn" class="ghost" style="width:100%;margin-top:10px">Create account</button>
+  </div>
+</div>
+
+<div id="app" class="app">
+  <aside class="sidebar">
+    <div class="brand"><strong>Business Solutions System</strong><small id="sideShop">Shop Management</small></div>
+    <div class="nav">
+      <button data-page="dashboard" class="active">🏠 Dashboard</button>
+      <button data-page="sales">🛒 Sales / POS</button>
+      <button data-page="products">📦 Products & Stock</button>
+      <button data-page="purchases">🚚 Purchases</button>
+      <button data-page="expenses">💸 Expenses</button>
+      <button data-page="customers">👥 Customers / Credit</button>
+      <button data-page="suppliers">🏭 Suppliers</button>
+      <button data-page="reports">📊 Reports</button>
+      <button data-page="settings">⚙️ Settings</button>
+      <button id="logoutBtn">↪️ Sign out</button>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="top"><div><h1 id="pageTitle">Dashboard</h1><div class="muted" id="shopTitle">Set your shop name in Settings</div></div><button class="ghost" id="quickSale">＋ New Sale</button></div>
+    <section id="content"></section>
+  </main>
+</div>
+
+<div id="modal" class="modal"><div class="modal-box"><h2 id="modalTitle"></h2><div id="modalBody"></div><div class="modal-actions"><button class="ghost" id="closeModal">Cancel</button><button class="primary" id="saveModal" style="width:auto">Save</button></div></div></div>
+
+<script>
+const SUPABASE_URL = "https://zkhbshcxfqdejyymznsj.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_TqB7OvwjTE1EQceuFAJFkQ_63i-225f";
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+let currentUser=null, shop=null, products=[], sales=[], expenses=[];
+const $=id=>document.getElementById(id);
+const money=n=>"KSh "+Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+
+async function init(){
+  const {data:{session}}=await db.auth.getSession();
+  if(session) await enter(session.user);
+}
+db.auth.onAuthStateChange(async (_e,session)=>{ if(session) await enter(session.user); else showAuth(); });
+
+async function enter(user){
+  currentUser=user; $("auth").style.display="none"; $("app").style.display="block";
+  await loadShop(); await loadData(); render("dashboard");
+}
+function showAuth(){currentUser=null;$("auth").style.display="grid";$("app").style.display="none";}
+$("loginBtn").onclick=async()=>{const {error}=await db.auth.signInWithPassword({email:$("email").value,password:$("password").value}); if(error) $("authNotice").textContent=error.message;};
+$("signupBtn").onclick=async()=>{const {error}=await db.auth.signUp({email:$("email").value,password:$("password").value}); $("authNotice").textContent=error?error.message:"Account created. Check your email if confirmation is enabled.";};
+$("logoutBtn").onclick=()=>db.auth.signOut();
+
+async function loadShop(){
+  let q=await db.from("shops").select("*").order("created_at",{ascending:true}).limit(1);
+  let data=q.data?.[0];
+  if(!data){const r=await db.from("shops").insert({owner_id:currentUser.id,name:"My General Shop"}).select().single(); if(r.error){console.error(r.error); throw new Error(r.error.message)} data=r.data;}
+  shop=data; updateShopLabels();
+}
+function updateShopLabels(){const n=shop?.name||"My General Shop";$("sideShop").textContent=n;$("shopTitle").textContent=n;}
+async function loadData(){
+  const [p,s,e]=await Promise.all([
+    db.from("products").select("*").eq("shop_id",shop.id).order("name"),
+    db.from("sales").select("*").eq("shop_id",shop.id).order("created_at",{ascending:false}).limit(1000),
+    db.from("expenses").select("*").eq("shop_id",shop.id).order("created_at",{ascending:false}).limit(1000)
+  ]);
+  products=p.data||[]; sales=s.data||[]; expenses=e.data||[];
+}
+function render(page){
+  document.querySelectorAll(".nav button[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
+  $("pageTitle").textContent=page==="dashboard"?"Dashboard":page[0].toUpperCase()+page.slice(1);
+  const views={dashboard:dashboardView,sales:salesView,products:productsView,expenses:expensesView,reports:reportsView,settings:settingsView};
+  const view=views[page]||dashboardView;
+  $("content").innerHTML=view();
+  bindPage(page);
+}
+function localDateKey(date=new Date()){const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,"0"),d=String(date.getDate()).padStart(2,"0");return `${y}-${m}-${d}`;}
+function localMonthKey(date=new Date()){return localDateKey(date).slice(0,7);}
+function dateKeyFromIso(value){return value?localDateKey(new Date(value)):"";}
+function todaySales(){const d=localDateKey();return sales.filter(x=>dateKeyFromIso(x.created_at)===d);}
+function todayExpenses(){const d=localDateKey();return expenses.filter(x=>dateKeyFromIso(x.created_at)===d);}
+function monthlyExpenses(month=localMonthKey()){return expenses.filter(x=>dateKeyFromIso(x.created_at).slice(0,7)===month);}
+function monthlySales(month=localMonthKey()){return sales.filter(x=>dateKeyFromIso(x.created_at).slice(0,7)===month);}
+function saleProfit(s){return Number(s.gross_profit ?? (Number(s.total||0)-Number(s.cost_total||0)) ?? 0);}
+function grossProfitFor(saleList){return saleList.reduce((a,x)=>a+saleProfit(x),0);}
+function dashboardView(){
+  const ts=todaySales(), revenue=ts.reduce((a,x)=>a+Number(x.total||0),0), profit=grossProfitFor(ts), exp=todayExpenses().reduce((a,x)=>a+Number(x.amount||0),0);
+  const low=products.filter(p=>Number(p.stock)<=Number(p.min_stock));
+  return `<div class="cards"><div class="card"><div class="muted">Today's Sales</div><div class="value">${money(revenue)}</div></div><div class="card"><div class="muted">Today's Profit</div><div class="value">${money(profit)}</div><div class="muted">Before expenses</div></div><div class="card"><div class="muted">Today's Expenses</div><div class="value">${money(exp)}</div></div><div class="card"><div class="muted">Transactions</div><div class="value">${ts.length}</div></div></div><div class="panel"><h2>Stock Alert</h2><p>${low.length?`${low.length} product(s) are at or below minimum stock.`:'All products are above minimum stock.'}</p></div>`;
+}
+function reportsView(){
+  const month=localMonthKey(), ms=monthlySales(month), me=monthlyExpenses(month);
+  const gp=grossProfitFor(ms), ex=me.reduce((a,x)=>a+Number(x.amount||0),0), net=gp-ex;
+  const days=new Date(Number(month.slice(0,4)),Number(month.slice(5,7)),0).getDate();
+  let rows="";
+  for(let d=1;d<=days;d++){const key=`${month}-${String(d).padStart(2,"0")}`; const day=ms.filter(x=>dateKeyFromIso(x.created_at)===key); const dp=grossProfitFor(day); rows+=`<tr><td>${d}</td><td>${money(day.reduce((a,x)=>a+Number(x.total||0),0))}</td><td>${money(dp)}</td></tr>`;}
+  return `<div class="cards"><div class="card"><div class="muted">Monthly Gross Profit</div><div class="value">${money(gp)}</div></div><div class="card"><div class="muted">Monthly Expenses</div><div class="value">${money(ex)}</div></div><div class="card"><div class="muted">Monthly Profit</div><div class="value">${money(net)}</div><div class="muted">Gross profit minus expenses</div></div></div><div class="panel"><h2>Daily Profit — ${month}</h2><table><tr><th>Day</th><th>Sales</th><th>Profit</th></tr>${rows}</table></div>`;
+}
+function settingsView(){return `<div class="panel"><h2>Shop Settings</h2><div class="field"><label>Shop name</label><input id="shopName" value="${esc(shop?.name||'My General Shop')}"></div><button class="primary" id="saveShopBtn">Save Shop Name</button><p class="muted">Business Solutions System</p></div>`;}
+
+function productsView(){return `<div class="panel"><div class="toolbar"><input id="productSearch" placeholder="Search products..."><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary" style="width:auto" id="addProduct">＋ Add Product</button><button class="ghost" id="printStock">🖨️ Print Stock</button></div></div><table><tr><th>Product</th><th>Buying</th><th>Selling</th><th>Stock</th><th>Unit</th><th>Type</th><th>Actions</th></tr>${products.map(p=>`<tr><td>${esc(p.name)}</td><td>${money(p.buying_price)}</td><td>${money(p.selling_price)}</td><td>${p.stock}</td><td>${esc(p.unit||"piece")}</td><td><span class="badge">${esc(p.stock_type||"normal")}</span></td><td><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="ghost edit-stock" data-id="${p.id}">✏️ Edit</button><button class="ghost delete-stock" data-id="${p.id}" style="color:#991b1b">🗑️ Delete</button></div></td></tr>`).join("")}</table></div>`}
+function salesView(){return `<div class="panel"><div class="toolbar"><h2>Record a Sale</h2></div><div class="grid2"><div class="field"><label>Product</label><select id="saleProduct">${products.map(p=>`<option value="${p.id}">${esc(p.name)} — ${money(p.selling_price)} / ${esc(p.unit||"piece")} (stock ${p.stock})</option>`).join("")}</select></div><div class="field"><label>Quantity (can be decimal, e.g. 0.125 kg)</label><input id="saleQty" type="number" min="0.001" step="0.001" value="1"></div><div class="field"><label>Payment method</label><select id="salePayment"><option>Cash</option><option>M-Pesa</option><option>Credit</option></select></div></div><button class="primary" id="recordSale">Record Sale</button></div><div class="panel"><h2>Recent Sales</h2><table><tr><th>Date</th><th>Total</th><th>Payment</th></tr>${sales.slice(0,20).map(s=>`<tr><td>${new Date(s.created_at).toLocaleString()}</td><td>${money(s.total)}</td><td>${esc(s.payment_method||"Cash")}</td></tr>`).join("")}</table></div>`}
+function expensesView(){
+  const te=todayExpenses().reduce((a,x)=>a+Number(x.amount||0),0), me=monthlyExpenses().reduce((a,x)=>a+Number(x.amount||0),0);
+  return `<div class="cards"><div class="card"><div class="muted">Today's Expenses</div><div class="value">${money(te)}</div></div><div class="card"><div class="muted">Monthly Expenses</div><div class="value">${money(me)}</div></div><div class="card"><div class="muted">Expense Records</div><div class="value">${expenses.length}</div></div></div><div class="panel"><div class="toolbar"><h2>Expenses</h2><button class="primary" style="width:auto" id="addExpense">＋ Add Expense</button></div><table><tr><th>Date</th><th>Category</th><th>Amount</th><th>Note</th><th>Actions</th></tr>${expenses.slice(0,100).map(e=>`<tr><td>${new Date(e.created_at).toLocaleString()}</td><td>${esc(e.category)}</td><td>${money(e.amount)}</td><td>${esc(e.note||'')}</td><td><button class="ghost edit-expense" data-id="${e.id}">✏️ Edit</button> <button class="ghost delete-expense" data-id="${e.id}">🗑️ Delete</button></td></tr>`).join('')}</table></div>`;
+}
+function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
+function openModal(title,body,save){$("modalTitle").textContent=title;$("modalBody").innerHTML=body;$("modal").style.display="grid";$("saveModal").onclick=async()=>{await save();$("modal").style.display="none";await loadData();render($("pageTitle").textContent.toLowerCase());};}
+$("closeModal").onclick=()=>$("modal").style.display="none";
+function editProduct(id){
+  const p=products.find(x=>x.id===id); if(!p)return;
+  openModal("Edit Stock / Product",`<div class="field"><label>Product name</label><input id="mName" value="${esc(p.name)}"></div><div class="grid2"><div class="field"><label>Buying price</label><input id="mBuy" type="number" step="0.01" value="${p.buying_price}"></div><div class="field"><label>Selling price</label><input id="mSell" type="number" step="0.01" value="${p.selling_price}"></div><div class="field"><label>Current stock</label><input id="mStock" type="number" step="0.001" value="${p.stock}"></div><div class="field"><label>Minimum stock</label><input id="mMin" type="number" step="0.001" value="${p.min_stock}"></div><div class="field"><label>Unit</label><select id="mUnit">${["piece","kg","g","litre","packet","bottle","custom"].map(u=>`<option ${u===p.unit?"selected":""}>${u}</option>`).join("")}</select></div><div class="field"><label>Stock type</label><select id="mType">${["normal","weight","bulk_to_piece","divided_portion"].map(u=>`<option ${u===p.stock_type?"selected":""}>${u}</option>`).join("")}</select></div></div>`,async()=>{const r=await db.from("products").update({name:$("mName").value,buying_price:+$("mBuy").value,selling_price:+$("mSell").value,stock:+$("mStock").value,min_stock:+$("mMin").value,unit:$("mUnit").value,stock_type:$("mType").value}).eq("id",id);if(r.error)alert(r.error.message);});
+}
+async function deleteProduct(id){
+  const p=products.find(x=>x.id===id); if(!p)return;
+  if(!confirm(`Delete "${p.name}" from stock? This cannot be undone.`))return;
+  const r=await db.from("products").delete().eq("id",id);
+  if(r.error){alert(r.error.message);return;}
+  await loadData(); render("products");
+}
+function printStock(){
+  const rows=products.map(p=>`<tr><td>${esc(p.name)}</td><td>${money(p.buying_price)}</td><td>${money(p.selling_price)}</td><td>${p.stock}</td><td>${esc(p.unit||"piece")}</td><td>${esc(p.stock_type||"normal")}</td></tr>`).join("");
+  const w=window.open("","_blank","width=900,height=700");
+  if(!w){alert("Please allow pop-ups to print stock.");return;}
+  w.document.write(`<!doctype html><html><head><title>Stock - ${esc(shop?.name||"Shop")}</title><style>body{font-family:Arial;padding:30px}h1{margin-bottom:4px}p{color:#666}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #ddd;padding:9px;text-align:left}th{background:#f3f4f6}</style></head><body><h1>${esc(shop?.name||"Shop")}</h1><h2>Stock Report</h2><p>Business Solutions System · Printed ${new Date().toLocaleString()}</p><table><tr><th>Product</th><th>Buying</th><th>Selling</th><th>Stock</th><th>Unit</th><th>Type</th></tr>${rows}</table><script>window.onload=()=>window.print()<\/script></body></html>`);
+  w.document.close();
+}
+function openProduct(){openModal("Add Product",`<div class="field"><label>Product name</label><input id="mName"></div><div class="grid2"><div class="field"><label>Buying price</label><input id="mBuy" type="number" step="0.01"></div><div class="field"><label>Selling price</label><input id="mSell" type="number" step="0.01"></div><div class="field"><label>Opening stock</label><input id="mStock" type="number" step="0.001"></div><div class="field"><label>Minimum stock</label><input id="mMin" type="number" step="0.001" value="1"></div><div class="field"><label>Unit</label><select id="mUnit"><option>piece</option><option>kg</option><option>g</option><option>litre</option><option>packet</option><option>bottle</option><option>custom</option></select></div><div class="field"><label>Stock type</label><select id="mType"><option>normal</option><option>weight</option><option>bulk_to_piece</option><option>divided_portion</option></select></div></div>`,async()=>{const r=await db.from("products").insert({shop_id:shop.id,name:$("mName").value,buying_price:+$("mBuy").value,selling_price:+$("mSell").value,stock:+$("mStock").value,min_stock:+$("mMin").value,unit:$("mUnit").value,stock_type:$("mType").value});if(r.error)alert(r.error.message);});}
+function openExpense(){openModal("Add Expense",`<div class="field"><label>Category</label><input id="mCat" placeholder="Transport, rent, electricity..."></div><div class="field"><label>Amount</label><input id="mAmt" type="number" step="0.01"></div><div class="field"><label>Note</label><input id="mNote"></div>`,async()=>{const r=await db.from("expenses").insert({shop_id:shop.id,category:$("mCat").value,amount:+$("mAmt").value,note:$("mNote").value});if(r.error)alert(r.error.message);});}
+function editExpense(id){const e=expenses.find(x=>x.id===id);if(!e)return;openModal("Edit Expense",`<div class="field"><label>Category</label><input id="mCat" value="${esc(e.category)}"></div><div class="field"><label>Amount</label><input id="mAmt" type="number" step="0.01" value="${e.amount}"></div><div class="field"><label>Note</label><input id="mNote" value="${esc(e.note||"")}"></div>`,async()=>{const r=await db.from("expenses").update({category:$("mCat").value,amount:+$("mAmt").value,note:$("mNote").value}).eq("id",id);if(r.error)alert(r.error.message);});}
+async function deleteExpense(id){const e=expenses.find(x=>x.id===id);if(!e)return;if(!confirm(`Delete expense "${e.category}"? This cannot be undone.`))return;const r=await db.from("expenses").delete().eq("id",id);if(r.error){alert(r.error.message);return;}await loadData();render("expenses");}
+async function recordSale(){const p=products.find(x=>x.id===$("saleProduct").value), qty=+$("saleQty").value;if(!p||qty<=0)return alert("Choose a product and valid quantity.");if(qty>Number(p.stock))return alert("Not enough stock.");const total=qty*Number(p.selling_price);const cost_total=qty*Number(p.buying_price);const gross_profit=total-cost_total;const r=await db.from("sales").insert({shop_id:shop.id,product_id:p.id,quantity:qty,total,cost_total,gross_profit,payment_method:$("salePayment").value});if(r.error)return alert(r.error.message);const u=await db.from("products").update({stock:Number(p.stock)-qty}).eq("id",p.id);if(u.error)alert(u.error.message);await loadData();render("sales");}
+async function saveShop(){const name=$("shopName").value.trim();if(!name)return alert("Enter a shop name.");const r=await db.from("shops").update({name}).eq("id",shop.id);if(r.error)return alert(r.error.message);shop.name=name;updateShopLabels();alert("Shop name saved.");}
+$("quickSale").onclick=()=>render("sales");
+document.querySelectorAll(".nav button[data-page]").forEach(b=>b.onclick=()=>render(b.dataset.page));
+init();
+</script>
+</body>
+</html>
